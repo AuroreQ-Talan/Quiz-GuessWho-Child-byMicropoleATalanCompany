@@ -1,0 +1,611 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Qui est-ce ? — Trombinoscope</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,900&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#f1e8da;
+  --paper-2:#e9ddca;
+  --ink:#1e1b2e;
+  --ink-soft:#5b576f;
+  --amber:#ee8a2c;
+  --amber-deep:#cf6f14;
+  --green:#1f9d57;
+  --red:#df453a;
+  --frame:#fffdf7;
+  --line:rgba(30,27,46,.16);
+  --shadow:0 18px 40px -18px rgba(30,27,46,.55);
+}
+
+*{ box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+
+html,body{ height:100%; }
+body{
+  margin:0;
+  font-family:'DM Sans',system-ui,sans-serif;
+  background:
+    radial-gradient(120% 90% at 50% -10%, #fbf5ea 0%, var(--paper) 45%, var(--paper-2) 100%);
+  color:var(--ink);
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  height:100dvh;
+  overflow:hidden;
+  position:relative;
+}
+/* grain */
+body::before{
+  content:"";
+  position:fixed; inset:0;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  opacity:.05;
+  mix-blend-mode:multiply;
+  pointer-events:none;
+  z-index:0;
+}
+
+#app{
+  width:90%;
+  max-width:430px;
+  position:relative;
+  z-index:1;
+}
+
+.screen{ display:none; }
+.screen.active{ display:block; }
+
+/* ---------- typographie ---------- */
+.kicker{
+  font-size:.72rem;
+  font-weight:700;
+  letter-spacing:.28em;
+  text-transform:uppercase;
+  color:var(--amber-deep);
+  margin:0 0 .35rem;
+}
+h1{
+  font-family:'Fraunces',serif;
+  font-weight:900;
+  font-size:clamp(2.4rem,12vw,3.4rem);
+  line-height:.95;
+  margin:0 0 .9rem;
+  letter-spacing:-.01em;
+}
+.lead{
+  font-size:1.05rem;
+  line-height:1.5;
+  color:var(--ink-soft);
+  margin:0 0 1.8rem;
+  max-width:30ch;
+}
+.lead b{ color:var(--ink); }
+
+/* ---------- boutons ---------- */
+.btn{
+  display:flex; align-items:center; justify-content:center; gap:.5rem;
+  width:100%;
+  padding:18px 20px;
+  border:none;
+  border-radius:16px;
+  font-family:'DM Sans',sans-serif;
+  font-size:1.08rem;
+  font-weight:700;
+  cursor:pointer;
+  transition:transform .08s ease, box-shadow .2s ease, background .2s ease, opacity .2s;
+}
+.btn:active{ transform:translateY(2px) scale(.99); }
+.btn-primary{
+  background:var(--ink);
+  color:#fff;
+  box-shadow:0 6px 0 0 var(--amber-deep), var(--shadow);
+}
+.btn-primary:active{ box-shadow:0 2px 0 0 var(--amber-deep), var(--shadow); }
+.btn-primary:disabled{
+  opacity:.45; cursor:not-allowed; transform:none;
+  box-shadow:0 6px 0 0 rgba(0,0,0,.15);
+}
+.btn-amber{
+  background:linear-gradient(135deg,var(--amber),var(--amber-deep));
+  color:#fff;
+  box-shadow:var(--shadow);
+}
+
+/* ---------- écran d'accueil ---------- */
+#start-screen{ animation:rise .5s ease both; }
+.strip{
+  display:flex; gap:8px; justify-content:center; margin:0 0 1.6rem;
+}
+.strip span{
+  width:46px; height:58px; border-radius:8px;
+  background:var(--frame);
+  border:1px solid var(--line);
+  box-shadow:0 8px 16px -10px rgba(30,27,46,.5);
+  display:grid; place-items:center;
+  transform:rotate(var(--r));
+}
+.strip span::after{
+  content:""; width:20px; height:20px; border-radius:50%;
+  background:var(--amber); opacity:.35;
+  box-shadow:0 14px 0 -2px var(--amber);
+}
+.strip span:nth-child(1){ --r:-6deg; }
+.strip span:nth-child(2){ --r:2deg; }
+.strip span:nth-child(3){ --r:7deg; }
+
+.hint{ margin:1.2rem 0 0; font-size:.85rem; color:var(--ink-soft); }
+
+/* ---------- écran quiz ---------- */
+.topbar{
+  display:flex; align-items:center; justify-content:space-between;
+  margin-bottom:14px;
+}
+.progress{
+  font-size:.78rem; font-weight:700; letter-spacing:.14em; text-transform:uppercase;
+  color:var(--ink-soft);
+}
+.progress b{ color:var(--ink); }
+.score-pill{
+  font-size:.8rem; font-weight:700;
+  background:var(--ink); color:#fff;
+  padding:6px 12px; border-radius:999px;
+}
+
+/* photo type polaroid */
+.photo-wrap{ display:flex; justify-content:center; margin-bottom:18px; }
+.photo{
+  position:relative;
+  background:var(--frame);
+  padding:12px 12px 40px;
+  border-radius:6px;
+  box-shadow:var(--shadow);
+  transform:rotate(-1.6deg);
+}
+.photo.pop{ animation:pop .45s cubic-bezier(.2,.9,.3,1.3) both; }
+.photo .tape{
+  position:absolute; top:-10px; width:54px; height:22px;
+  background:rgba(238,138,44,.32);
+  border:1px solid rgba(238,138,44,.4);
+}
+.photo .tape.l{ left:14px; transform:rotate(-8deg); }
+.photo .tape.r{ right:14px; transform:rotate(7deg); }
+.photo img{
+  display:block;
+  width:min(66vw,250px);
+  aspect-ratio:4/5;
+  max-height:48dvh;
+  object-fit:cover;
+  border-radius:3px;
+  background:var(--paper-2);
+}
+.photo .cap{
+  position:absolute; left:0; right:0; bottom:10px; text-align:center;
+  font-family:'Fraunces',serif; font-weight:600; font-style:italic;
+  color:var(--ink-soft); font-size:1rem;
+}
+
+/* ---------- combobox ---------- */
+.combo{ position:relative; margin-bottom:12px; }
+.combo-input-wrap{ position:relative; }
+.combo input{
+  width:100%;
+  padding:16px 44px 16px 18px;
+  font-family:'DM Sans',sans-serif;
+  font-size:1.05rem; font-weight:500;
+  color:var(--ink);
+  background:var(--frame);
+  border:1.5px solid var(--line);
+  border-radius:14px;
+  outline:none;
+  transition:border-color .15s, box-shadow .15s;
+}
+.combo input::placeholder{ color:#9a96aa; }
+.combo input:focus{
+  border-color:var(--amber);
+  box-shadow:0 0 0 4px rgba(238,138,44,.18);
+}
+.combo input:disabled{ background:var(--paper-2); color:var(--ink-soft); }
+.chev{
+  position:absolute; right:16px; top:50%; transform:translateY(-50%);
+  width:18px; height:18px; color:var(--ink-soft);
+  transition:transform .2s; pointer-events:none;
+}
+.combo.open .chev{ transform:translateY(-50%) rotate(180deg); }
+
+.combo-list{
+  position:absolute;
+  bottom:calc(100% + 8px);
+  left:0; right:0;
+  max-height:36dvh;
+  overflow-y:auto;
+  background:var(--frame);
+  border:1.5px solid var(--line);
+  border-radius:14px;
+  box-shadow:var(--shadow);
+  padding:6px;
+  display:none;
+  transform-origin:bottom center;
+  -webkit-overflow-scrolling:touch;
+}
+.combo.open .combo-list{ display:block; animation:listIn .16s ease; }
+.combo-item{
+  display:block; width:100%; text-align:left;
+  padding:12px 14px; border:none; background:none;
+  font-family:'DM Sans',sans-serif; font-size:1rem; font-weight:500;
+  color:var(--ink); border-radius:9px; cursor:pointer;
+}
+.combo-item:hover, .combo-item.active{ background:var(--paper); }
+.combo-item.active{ box-shadow:inset 3px 0 0 var(--amber); }
+.combo-empty{ padding:14px; text-align:center; color:var(--ink-soft); font-size:.92rem; }
+
+/* ---------- bandeau résultat ---------- */
+.banner{
+  display:none;
+  align-items:center; gap:10px;
+  padding:14px 16px; border-radius:14px;
+  font-weight:700; margin-bottom:12px;
+  animation:pop .35s ease both;
+}
+.banner.show{ display:flex; }
+.banner.ok{ background:rgba(31,157,87,.14); color:var(--green); border:1.5px solid rgba(31,157,87,.35); }
+.banner.ko{ background:rgba(223,69,58,.12); color:var(--red); border:1.5px solid rgba(223,69,58,.32); }
+.banner .ico{ font-size:1.2rem; line-height:1; }
+.banner .reveal{ display:block; font-weight:500; font-size:.86rem; color:var(--ink-soft); margin-top:2px; }
+.banner .reveal b{ color:var(--ink); }
+
+.hidden{ display:none !important; }
+
+/* ---------- écran résultat ---------- */
+#result-screen{ text-align:center; }
+.score-num{
+  font-family:'Fraunces',serif; font-weight:900;
+  font-size:clamp(3.5rem,22vw,5.5rem); line-height:1;
+  color:var(--amber-deep);
+  margin:.4rem 0 .1rem;
+}
+.score-sub{ font-size:1rem; color:var(--ink-soft); margin:0 0 .4rem; }
+.result-msg{ font-family:'Fraunces',serif; font-style:italic; font-size:1.25rem; margin:0 0 1.8rem; }
+
+/* ---------- animations ---------- */
+@keyframes rise{ from{opacity:0; transform:translateY(14px);} to{opacity:1; transform:none;} }
+@keyframes pop{ from{opacity:0; transform:scale(.92) rotate(-1.6deg);} to{opacity:1; transform:scale(1) rotate(-1.6deg);} }
+@keyframes listIn{ from{opacity:0; transform:translateY(6px) scaleY(.96);} to{opacity:1; transform:none;} }
+.banner.show, .score-num{ animation-fill-mode:both; }
+</style>
+</head>
+<body>
+<div id="app">
+
+  <!-- ACCUEIL -->
+  <div id="start-screen" class="screen active">
+    <div class="strip"><span></span><span></span><span></span></div>
+    <p class="kicker">Trombinoscope</p>
+    <h1>Qui est-ce&nbsp;?</h1>
+    <p class="lead">Une photo s'affiche, à toi de retrouver le bon collègue. <b><span id="count">0</span> photos</b> au programme.</p>
+    <button class="btn btn-primary" onclick="startGame()">Commencer →</button>
+    <p class="hint">Tape un prénom pour filtrer la liste, puis valide.</p>
+  </div>
+
+  <!-- QUIZ -->
+  <div id="quiz-screen" class="screen">
+    <div class="topbar">
+      <div class="progress">Photo <b><span id="cur">1</span></b> / <span id="tot">0</span></div>
+      <div class="score-pill">Score <span id="score">0</span></div>
+    </div>
+
+    <div class="photo-wrap">
+      <div class="photo" id="photo">
+        <span class="tape l"></span><span class="tape r"></span>
+        <img id="photo-img" alt="Photo du collègue à deviner">
+        <div class="cap" id="cap">N° 01</div>
+      </div>
+    </div>
+
+    <div class="combo" id="combo">
+      <div class="combo-input-wrap">
+        <input id="guess" type="text" placeholder="Tape un prénom…"
+               autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false"
+               role="combobox" aria-expanded="false" aria-autocomplete="list">
+        <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+      </div>
+      <div class="combo-list" id="list" role="listbox"></div>
+    </div>
+
+    <div class="banner" id="banner">
+      <span class="ico" id="banner-ico"></span>
+      <span><span id="banner-txt"></span><span class="reveal" id="reveal"></span></span>
+    </div>
+
+    <button class="btn btn-primary" id="validate" onclick="validate()" disabled>Valider</button>
+    <button class="btn btn-amber hidden" id="next" onclick="next()">Suivant →</button>
+  </div>
+
+  <!-- RÉSULTAT -->
+  <div id="result-screen" class="screen">
+    <p class="kicker">Terminé</p>
+    <h1>Résultat</h1>
+    <div class="score-num"><span id="final-score">0</span>/<span id="final-tot">0</span></div>
+    <p class="score-sub"><span id="final-pct">0</span>% de bonnes réponses</p>
+    <p class="result-msg" id="result-msg"></p>
+    <button class="btn btn-primary" onclick="restart()">Rejouer</button>
+  </div>
+
+</div>
+
+<script>
+/* =====================================================================
+   1) METS TES PHOTOS ICI
+   ---------------------------------------------------------------------
+   Deux méthodes au choix :
+
+   A) LE PLUS SIMPLE — mets tes images dans un dossier "photos/" à côté
+      de ce fichier HTML, puis liste juste les chemins. La bonne réponse
+      est déduite automatiquement du nom du fichier :
+        "photos/Anaëlle ISOLA.jpg"  ->  réponse : "Anaëlle ISOLA"
+
+        let photos = [
+          "photos/Anaëlle ISOLA.jpg",
+          "photos/Baptiste PICHERY.png",
+          ...
+        ];
+
+   B) CONTRÔLE TOTAL — tu précises l'image ET la réponse :
+
+        let photos = [
+          { src:"photos/img01.jpg", answer:"Anaëlle ISOLA" },
+          ...
+        ];
+
+   ⚠ La réponse doit correspondre EXACTEMENT à un nom de la liste
+     "players" plus bas (accents et casse sont ignorés à la comparaison).
+
+   Les exemples ci-dessous sont des images bidon (juste pour la démo) :
+   remplace tout le tableau par le tien.
+   ===================================================================== */
+let photos = [
+  { src:"photos/img01.jpg", answer:"Evan PENNEC"},
+  { src:"photos/img02.jpg", answer:"Valentin HENRY"},
+  { src:"photos/img03.jpg", answer:"Binbing NING"},
+  { src:"photos/img04.jpg", answer:"Ludovic BUSCA"},
+  { src:"photos/img05.jpg", answer:"Aurore QUEUDEVILLE"},
+  { src:"photos/img06.jpg", answer:"Sam BAROLLET"},
+  { src:"photos/img07.jpg", answer:"Apolline SAUSSARD"},
+  { src:"photos/img08.jpg", answer:"Céline CONSTANT"},
+  { src:"photos/img09.jpg", answer:"Luan DECHERY"},
+  { src:"photos/img10.jpg", answer:"Emilien BELGERI"},
+  { src:"photos/img11.jpg", answer:"Lise PEDEMONTE"},
+  { src:"photos/img12.jpg", answer:"Lisa BOUBAKER"},
+  { src:"photos/img13.jpg", answer:"Souhayl BOUZIANE"},
+  { src:"photos/img14.jpg", answer:"Paul Llitjos"},
+];
+
+/* =====================================================================
+   2) LA LISTE DES COLLÈGUES (le menu déroulant filtrable)
+   ===================================================================== */
+const players = [
+  "Anaëlle ISOLA","Apolline SAUSSARD","Asma ALOUI","Aurore QUEUDEVILLE",
+  "Baptiste PICHERY","Binbing NING","Céline CONSTANT","Chaima SAID",
+  "Clément SCHEIRLINCK","Cole STANNARD","Denis PEYRELON","Dilane LONTSIE TEKOUTSAP",
+  "Emilien BELGERI","Evan PENNEC","Florian BIANCIOTTO","Jordan LONG",
+  "Landry KOMBO","Lisa BOUBAKER","Lise PEDEMONTE","Luan DECHERY",
+  "Ludovic BUSCA","Manon VOGLER","Martial TARDY","Maxime FEUILLET",
+  "Mohamed BENMOUSSA","Mohamed EL ATROUBI","Mohamed EL KOLLI","Mohamed ELAMRAOUI",
+  "Nathan DI PALMA","Nicolas MANCONE","Nicolas MANIN","Noé DUHAMEL",
+  "Sam BAROLLET","Souhayl BOUZIANE","Timothée HOUDOYER","Valentin HENRY",
+  "Valentin KONCZAK","Vincent MOMIN","Vincent PENOT","Nathan THOMAS","Nassira BOUGUESSA",
+  "Paul Llitjos", "Delphine PEYRAT-ELLUL","Dilane LONTSIE TEKOUTSAP","Timothée HOUDOYER","Héloïse HELLER"
+].sort((a,b)=>a.localeCompare(b,'fr'));
+
+/* Mélanger l'ordre des photos à chaque partie ? */
+const SHUFFLE = false;
+
+/* =====================================================================
+   ===  Tu n'as normalement rien à toucher en dessous  =================
+   ===================================================================== */
+
+// génère une fausse photo (démo uniquement)
+function ph(n, hue, answer){
+  const svg =
+   `<svg xmlns='http://www.w3.org/2000/svg' width='400' height='500'>
+      <defs><linearGradient id='g' x1='0' y1='0' x2='0' y2='1'>
+        <stop offset='0' stop-color='hsl(${hue} 58% 72%)'/>
+        <stop offset='1' stop-color='hsl(${hue+18} 52% 54%)'/>
+      </linearGradient></defs>
+      <rect width='400' height='500' fill='url(#g)'/>
+      <circle cx='200' cy='195' r='82' fill='rgba(255,255,255,.9)'/>
+      <path d='M60 480 Q200 300 340 480 Z' fill='rgba(255,255,255,.9)'/>
+      <text x='200' y='44' text-anchor='middle' font-family='sans-serif' font-size='24' fill='rgba(255,255,255,.95)'>Photo ${n}</text>
+    </svg>`;
+  return { src:'data:image/svg+xml,'+encodeURIComponent(svg), answer };
+}
+
+// normalise un chemin "photos/Nom.jpg" en { src, answer }
+function normalizePhoto(p){
+  if(typeof p === 'string'){
+    const file = decodeURIComponent(p.split('/').pop());
+    const answer = file.replace(/\.[^.]+$/,'').replace(/_+/g,' ').trim();
+    return { src:p, answer };
+  }
+  return p;
+}
+
+const norm = s => (s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().trim();
+function shuffle(a){ for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } }
+
+// éléments
+const screens = {
+  start:  document.getElementById('start-screen'),
+  quiz:   document.getElementById('quiz-screen'),
+  result: document.getElementById('result-screen'),
+};
+const combo   = document.getElementById('combo');
+const input   = document.getElementById('guess');
+const list    = document.getElementById('list');
+const photoEl = document.getElementById('photo');
+const photoImg= document.getElementById('photo-img');
+const cap     = document.getElementById('cap');
+const banner  = document.getElementById('banner');
+const validateBtn = document.getElementById('validate');
+const nextBtn = document.getElementById('next');
+
+let idx = 0, score = 0, selected = null, answered = false, activeItem = -1, filtered = [];
+
+photos = photos.map(normalizePhoto);
+document.getElementById('count').textContent = photos.length;
+document.getElementById('tot').textContent   = photos.length;
+document.getElementById('final-tot').textContent = photos.length;
+
+function show(name){
+  Object.values(screens).forEach(s=>s.classList.remove('active'));
+  screens[name].classList.add('active');
+}
+
+function startGame(){
+  idx = 0; score = 0;
+  if(SHUFFLE) shuffle(photos);
+  show('quiz');
+  loadPhoto();
+}
+
+function loadPhoto(){
+  answered = false; selected = null; activeItem = -1;
+  input.value = ''; input.disabled = false;
+  validateBtn.disabled = true;
+  validateBtn.classList.remove('hidden');
+  nextBtn.classList.add('hidden');
+  banner.className = 'banner';
+  closeList();
+
+  const p = photos[idx];
+  photoImg.src = p.src;
+  cap.textContent = 'N° ' + String(idx+1).padStart(2,'0');
+  document.getElementById('cur').textContent = idx+1;
+  document.getElementById('score').textContent = score;
+
+  // relance l'animation d'apparition
+  photoEl.classList.remove('pop'); void photoEl.offsetWidth; photoEl.classList.add('pop');
+}
+
+/* ---------- combobox ---------- */
+const isOpen = () => combo.classList.contains('open');
+function openList(){ combo.classList.add('open'); input.setAttribute('aria-expanded','true'); renderList(); }
+function closeList(){ combo.classList.remove('open'); input.setAttribute('aria-expanded','false'); activeItem=-1; }
+
+function renderList(){
+  const q = norm(input.value);
+  filtered = players.filter(n => norm(n).includes(q));
+  list.innerHTML = '';
+  if(filtered.length === 0){
+    const e = document.createElement('div');
+    e.className = 'combo-empty'; e.textContent = 'Aucun nom trouvé';
+    list.appendChild(e);
+    return;
+  }
+  filtered.forEach((name,i)=>{
+    const it = document.createElement('button');
+    it.type = 'button';
+    it.className = 'combo-item' + (i===activeItem ? ' active' : '');
+    it.textContent = name;
+    it.setAttribute('role','option');
+    it.addEventListener('mousedown', e => { e.preventDefault(); pick(name); });
+    list.appendChild(it);
+  });
+}
+
+function pick(name){
+  input.value = name;
+  selected = name;
+  closeList();
+  validateBtn.disabled = false;
+}
+
+function scrollActive(){
+  const el = list.children[activeItem];
+  if(el) el.scrollIntoView({ block:'nearest' });
+}
+
+input.addEventListener('focus', ()=>{ if(!answered) openList(); });
+input.addEventListener('input', ()=>{
+  activeItem = -1;
+  const exact = players.find(n => norm(n) === norm(input.value));
+  selected = exact || null;
+  validateBtn.disabled = !selected;
+  openList();
+});
+input.addEventListener('keydown', e=>{
+  if(answered) return;
+  if(e.key === 'ArrowDown'){
+    e.preventDefault();
+    if(!isOpen()) openList();
+    activeItem = Math.min(activeItem+1, filtered.length-1);
+    renderList(); scrollActive();
+  } else if(e.key === 'ArrowUp'){
+    e.preventDefault();
+    activeItem = Math.max(activeItem-1, 0);
+    renderList(); scrollActive();
+  } else if(e.key === 'Enter'){
+    e.preventDefault();
+    if(isOpen() && activeItem >= 0 && filtered[activeItem]) pick(filtered[activeItem]);
+    else if(selected) validate();
+  } else if(e.key === 'Escape'){
+    closeList();
+  }
+});
+document.addEventListener('click', e=>{ if(!combo.contains(e.target)) closeList(); });
+
+/* ---------- validation ---------- */
+function validate(){
+  if(!selected || answered) return;
+  answered = true;
+  input.disabled = true;
+  input.blur();
+  closeList();
+
+  const correct = norm(selected) === norm(photos[idx].answer);
+  if(correct){
+    score++;
+    banner.className = 'banner ok show';
+    document.getElementById('banner-ico').textContent = '✓';
+    document.getElementById('banner-txt').textContent = 'Bien vu !';
+    document.getElementById('reveal').innerHTML = '';
+  } else {
+    banner.className = 'banner ko show';
+    document.getElementById('banner-ico').textContent = '✗';
+    document.getElementById('banner-txt').textContent = 'Raté…';
+    document.getElementById('reveal').innerHTML = "C'était : <b>"+photos[idx].answer+"</b>";
+  }
+  document.getElementById('score').textContent = score;
+  validateBtn.classList.add('hidden');
+  nextBtn.classList.remove('hidden');
+  nextBtn.focus();
+}
+
+function next(){
+  idx++;
+  if(idx < photos.length) loadPhoto();
+  else finish();
+}
+
+function finish(){
+  show('result');
+  const pct = Math.round((score / photos.length) * 100);
+  document.getElementById('final-score').textContent = score;
+  document.getElementById('final-pct').textContent = pct;
+
+  let msg;
+  if(pct === 100)     msg = "C'est long l'interco non ? 🏆";
+  else if(pct >= 80)  msg = "Excellent, presque parfait 👏";
+  else if(pct >= 60)  msg = "Pas mal mais apprends à différencier les 2 Vincent 🤓 ";
+  else if(pct >= 40)  msg = "C'est seulement 2j par semaine le TT n'oublie pas ☕";
+  else                msg = "Tu connais midi popote ? 🍔";
+  document.getElementById('result-msg').textContent = msg;
+}
+
+function restart(){ startGame(); }
+</script>
+</body>
+</html>
